@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 project(recomp_audio_core VERSION 0.1.0 LANGUAGES C CXX)
 option(RECOMP_AUDIO_BUILD_TESTS "Build independent donor comparison fixtures" ON)
-add_library(recomp_audio_core STATIC src/recomp_audio.c)
+add_library(recomp_audio_core STATIC src/recomp_audio.c src/psx_audio.c)
 add_library(recomp-audio::core ALIAS recomp_audio_core)
 target_include_directories(recomp_audio_core PUBLIC include)
 target_compile_features(recomp_audio_core PUBLIC c_std_99)
