@@ -1,0 +1,42 @@
+#define rab_config oracle_@PROFILE@_config
+#define rab_stats oracle_@PROFILE@_stats
+#define rab_bridge oracle_@PROFILE@_bridge
+#define rab_config_defaults oracle_@PROFILE@_defaults
+#define rab_init oracle_@PROFILE@_init
+#define rab_free oracle_@PROFILE@_free
+#define rab_push oracle_@PROFILE@_push
+#define rab_pull oracle_@PROFILE@_pull
+#define rab_fill_ms oracle_@PROFILE@_fill
+#define rab_get_stats oracle_@PROFILE@_stats_get
+#define rab_reset oracle_@PROFILE@_reset
+#define rab_try_push_prepared oracle_@PROFILE@_prepared
+#define RECOMP_AUDIO_DRC_IMPL
+#include "@DONOR@"
+#include "oracle_api.h"
+void *fixture_@PROFILE@_create(double source, double host, int channels, int stretch) {
+    rab_config c; rab_config_defaults(&c);
+    c.source_rate=source; c.host_rate=host; c.channels=channels; c.stretch_enable=stretch;
+    rab_bridge *b=(rab_bridge *)calloc(1,sizeof(*b));
+    if (b && rab_init(b,&c)) {free(b);return NULL;} return b;
+}
+void fixture_@PROFILE@_destroy(void *ctx) {rab_free((rab_bridge *)ctx);free(ctx);}
+void fixture_@PROFILE@_push(void *ctx,const int16_t *s,int n) {rab_push((rab_bridge *)ctx,s,n);}
+void fixture_@PROFILE@_pull(void *ctx,int16_t *s,int n) {rab_pull((rab_bridge *)ctx,s,n);}
+void fixture_@PROFILE@_reset(void *ctx) {
+    rab_bridge *b=(rab_bridge *)ctx;rab_config c=b->cfg;rab_free(b);rab_init(b,&c);
+}
+void fixture_@PROFILE@_observe(void *ctx,oracle_state *s) {
+    rab_bridge *b=(rab_bridge *)ctx;memset(s,0,sizeof(*s));
+    s->in_count=b->in_count;s->out_pos=b->out_pos;s->step=b->cur_step;s->err=b->err_lp;
+    s->corr=b->corr;s->gain=b->gain;s->prime=b->prime_ms;s->primed=b->primed;
+    s->concealing=b->concealing;s->loop_start=b->loop_start;s->loop_len=b->loop_len;
+    s->loop_pos=b->loop_pos;memcpy(s->last_out,b->last_out,sizeof(s->last_out));
+    s->pushed=b->stats.pushed_frames;s->pulled=b->stats.pulled_frames;
+    s->underruns=b->stats.underrun_events;s->overflow=b->stats.overflow_drops;
+    s->stretch=b->stats.stretch_frames;s->episodes=b->stats.stretch_events;
+    s->fill=b->stats.last_fill_ms;s->correction=b->stats.last_correction;
+    s->ring_hash=UINT64_C(14695981039346656037);
+    const unsigned char *p=(const unsigned char *)b->ring;
+    for(size_t i=0;i<(size_t)b->cap*b->cfg.channels*sizeof(float);++i)
+        s->ring_hash=(s->ring_hash^p[i])*UINT64_C(1099511628211);
+}
