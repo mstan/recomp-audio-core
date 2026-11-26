@@ -34,7 +34,7 @@ extern "C" {
 #endif
 
 typedef struct {
-    int    delivery_profile; /* 0: accepted Genesis, 1: legacy NES stall policy */
+    int    delivery_profile; /* 0: Genesis, 1: legacy NES, 2: GBA bounded stalls */
     int    channels;        /* 1 or 2                                          */
     double source_rate;     /* nominal guest source sample rate (Hz)           */
     double host_rate;       /* host device sample rate (Hz)                     */
@@ -58,6 +58,7 @@ typedef struct {
                              * most recent audio instead of fading to silence (1)    */
     double stretch_min_ms;  /* min loop period / correlation search floor (5)        */
     double stretch_max_ms;  /* max loop period / correlation search ceil  (25)       */
+    double stretch_limit_ms;/* GBA maximum concealment before fading (80 ms) */
     double stretch_xfade_ms;/* loop-wrap crossfade length (4)                        */
 } rab_config;
 
@@ -99,6 +100,8 @@ typedef struct rab_bridge {
     double loop_start;      /* source-frame index: start of the looped region  */
     double loop_len;        /* looped region length in source frames           */
     double loop_pos;        /* fractional read cursor within the looped region */
+
+    uint64_t conceal_frames; /* host frames in current GBA stall */
 
     rab_stats stats;
 } rab_bridge;
@@ -164,6 +167,7 @@ static double rab__blackman(double tn) { /* tn in [-1,1] */
 
 void rab_config_defaults(rab_config *c) {
     c->delivery_profile = 0;
+    c->stretch_limit_ms = 80.0;
     c->channels       = 2;
     c->source_rate    = 48000.0;
     c->host_rate      = 48000.0;
@@ -187,7 +191,7 @@ void rab_config_defaults(rab_config *c) {
 
 int rab_init(rab_bridge *b, const rab_config *cfg) {
     if (!b || !cfg) return 1;
-    if (cfg->delivery_profile != 0 && cfg->delivery_profile != 1) return 8;
+    if (cfg->delivery_profile != 0 && cfg->delivery_profile != 1 && cfg->delivery_profile != 2) return 8;
     if (!isfinite(cfg->source_rate) || !isfinite(cfg->host_rate) ||
         !isfinite(cfg->target_ms) || !isfinite(cfg->ring_ms) ||
         !isfinite(cfg->preroll_ms) || !isfinite(cfg->kp) ||
@@ -195,7 +199,7 @@ int rab_init(rab_bridge *b, const rab_config *cfg) {
         !isfinite(cfg->slew_pp_per_s) || !isfinite(cfg->deadband_ms) ||
         !isfinite(cfg->em_low_ms) || !isfinite(cfg->em_high_ms) ||
         !isfinite(cfg->stretch_min_ms) || !isfinite(cfg->stretch_max_ms) ||
-        !isfinite(cfg->stretch_xfade_ms) || cfg->target_ms <= 0 ||
+        !isfinite(cfg->stretch_limit_ms) || !isfinite(cfg->stretch_xfade_ms) || cfg->target_ms <= 0 ||
         cfg->ring_ms < 0 || cfg->preroll_ms < 0 || cfg->err_lp_ms < 0 ||
         cfg->kp < 0 || cfg->max_correction < 0 || cfg->max_correction >= 1 ||
         cfg->slew_pp_per_s < 0 || cfg->deadband_ms < 0 ||
@@ -279,6 +283,7 @@ void rab_reset(rab_bridge *b) {
     b->prime_ms = (b->cfg.preroll_ms > b->cfg.target_ms)
                     ? b->cfg.preroll_ms : b->cfg.target_ms;
     b->concealing = 0;
+    b->conceal_frames = 0;
     b->loop_start = b->loop_len = b->loop_pos = 0.0;
     memset(b->last_out, 0, sizeof(b->last_out));
     memset(&b->stats, 0, sizeof(b->stats));
@@ -414,7 +419,7 @@ static double rab__loop_score(const rab_bridge *b, int64_t end_i, int L, int W, 
  * the signal one period earlier (normalized cross-correlation on ch0), so the
  * loop wrap is pitch-continuous instead of buzzy. */
 static double rab__find_loop_len(const rab_bridge *b, int64_t end_i) {
-    if (b->cfg.delivery_profile == 1) {
+    if (b->cfg.delivery_profile == 1 || b->cfg.delivery_profile == 2) {
     int ch = b->cfg.channels;
     double sr = b->cfg.source_rate;
     int Lmin = (int)(b->cfg.stretch_min_ms * sr / 1000.0); if (Lmin < 1) Lmin = 1;
@@ -495,6 +500,7 @@ void rab_pull(rab_bridge *b, int16_t *out, int frames) {
         if (have) {
             /* live forward play; caught up to real audio, so leave conceal mode */
             b->concealing = 0;
+            b->conceal_frames = 0;
             double fr = b->out_pos - (double)i;
             int phase = (int)(fr * b->cfg.phases);
             if (phase >= b->cfg.phases) phase = b->cfg.phases - 1;
@@ -508,6 +514,8 @@ void rab_pull(rab_bridge *b, int16_t *out, int frames) {
             b->out_pos += step;             /* advance only when we consumed live */
             delivering = 1;
         } else if (b->primed && b->cfg.stretch_enable
+                   && (b->cfg.delivery_profile != 2 || b->cfg.stretch_limit_ms <= 0.0 ||
+                       b->conceal_frames < (uint64_t)(b->cfg.stretch_limit_ms * b->cfg.host_rate / 1000.0))
                    && (int64_t)b->in_count > (int64_t)(2 * b->half + 4)) {
             /* Producer stalled: conceal by looping the most recent audio,
              * pitch-aligned, instead of fading to silence. out_pos is held at the
@@ -536,6 +544,7 @@ void rab_pull(rab_bridge *b, int16_t *out, int frames) {
             b->loop_pos += step;
             if (b->loop_pos >= loop_end) b->loop_pos -= b->loop_len;
             b->stats.stretch_frames++;
+            b->conceal_frames++;
             delivering = 1;
         } else {
             /* not primed, or no history to loop: hold last sample, fade to silence */
