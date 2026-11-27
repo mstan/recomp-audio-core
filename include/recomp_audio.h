@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 typedef struct recomp_audio recomp_audio;
-enum { RECOMP_AUDIO_GENESIS = 0, RECOMP_AUDIO_LEGACY_NES = 1 };
+enum { RECOMP_AUDIO_GENESIS = 0, RECOMP_AUDIO_LEGACY_NES = 1, RECOMP_AUDIO_GBA = 2 };
 /* The profile is fixed at creation. All operations on one instance, including
  * observation/reset/destruction, require caller-provided exclusion. This is
  * not a lock-free SPSC queue: producer overflow also moves the read cursor. */
