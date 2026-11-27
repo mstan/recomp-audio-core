@@ -15,7 +15,7 @@
                        "oracle":  "tests/oracles/segagenesisrecomp.h"
                    }
                ],
-    "license":  "MIT under the owner grant; historical donor notices and permissions retained",
+    "license":  "Portable targets MIT under the owner grant; optional Aurora GPL profile preserves separate third-party terms",
     "extraction_changes":  [
                                "One shared implementation; delivery_profile selects accepted Genesis or legacy NES stall behavior.",
                                "Genesis reset and prepared F32 publication are available to both profiles.",
@@ -34,5 +34,25 @@
                                "revision":  "e74a7b02f04d40e15399b41b36cba3ecad965cb1",
                                "changes":  "Portable C++ packet and output lifetime owners with C ABI, Rust endpoint/device bindings, diagnostic callbacks, one bounded queue copy, fixed preallocated storage; no synthesis/resampler change",
                                "license":  "MIT owner grant; SDL3 system APIs remain separate dependency bindings"
-                           }
+                           },
+    "optional_aurora_profile": {
+        "donor_repository": "https://github.com/chrissotraidis/RecompCore",
+        "revision": "338a3dbcdd384142f0fe40db44e0cd1d1b0c61e4",
+        "author": "Chris Sotraidis",
+        "license": "GPL-3.0-or-later",
+        "inputs": {
+            "GXRuntime\\backends\\aurora\\aurora_audio.cpp": "e0f909e67386190a2daece34202b37c532cad672450d261bca3de0d6d03f58f2",
+            "GXRuntime\\backends\\aurora\\audio_stretch.hpp": "2a6f4a17e1e70576a9ea4f1544503e1e13136f403cb339b6f37ee8848a2840b9"
+        },
+        "hash_normalization": "CRLF to LF only",
+        "owner_session_repository": "https://github.com/mstan/gcnllr",
+        "owner_session_revision": "b8480419ab61935fc5be2ad912ec133e6d95fa2f",
+        "owner_session_paths": [
+            "src/recompcore/audio_host.cpp",
+            "src/recompcore/adapt_audio.cmake"
+        ],
+        "owner_license": "MIT owner grant; historical GPL notices retained in donor history",
+        "preserved": "Exact 64-frame small-block batching and direct large blocks, tail flush, 32/48 kHz, prebuffer/drop policy, pause retains queue, recovery, capture, demand counters, discontinuity/replay; no stretching",
+        "binding": "Console DolPlatformOps registration and presentation deadlines remain engine-owned"
+    }
 }
