@@ -1,6 +1,12 @@
 # License scope
 
-The repository's current aggregate license classification is `MIT`.
+The portable `recomp-audio::core` and `recomp-audio::session` targets are `MIT`.
+The separately instantiated `recomp-audio::aurora-gpl` profile additionally
+links the qualified Chris Sotraidis GPL-3.0-or-later backend. It is excluded
+from the default build and is never linked by the portable targets. The
+profile's guarded adaptation fragments retain GPL terms; owner-authored glue
+and interfaces retain the MIT grant. See [the profile](backends/aurora/README.md)
+for the donor notice, full GPL text and explicit target selection.
 
 The NES and Genesis audio bridge donor files and extraction changes are Matthew Stanley contributions. Historical donor license and permission copies under licenses/ are retained for provenance; the MIT grant below also covers the owner-authored donor code reproduced in the test oracles.
 
