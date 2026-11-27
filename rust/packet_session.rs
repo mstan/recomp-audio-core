@@ -17,8 +17,14 @@ pub trait PacketObserver: Send + Sync + 'static {
     fn first_paced_overflow() {}
 }
 pub trait PacketSink {
+    /// # Safety
     /// Session remains alive and consumer-exclusive throughout this call.
-    fn fill_native(&mut self, session: *mut native::PacketSession, requested: usize, started: u64);
+    unsafe fn fill_native(
+        &mut self,
+        session: *mut native::PacketSession,
+        requested: usize,
+        started: u64,
+    );
 }
 struct Handle<O: PacketObserver> {
     ptr: NonNull<native::PacketSession>,
@@ -162,7 +168,7 @@ impl<O: PacketObserver> Consumer<O> {
     pub fn priming(&self) -> bool {
         unsafe { native::recomp_audio_packet_priming(self.queue.ptr.as_ptr()) != 0 }
     }
-    pub fn consume(&mut self, use_packet: impl FnOnce(&PacketView<'_>)) -> bool {
+    pub fn consume(&mut self, use_packet: impl for<'a> FnOnce(&'a PacketView<'a>)) -> bool {
         let mut packet = MaybeUninit::<native::Packet>::uninit();
         if unsafe { native::recomp_audio_packet_peek(self.queue.ptr.as_ptr(), packet.as_mut_ptr()) }
             == 0
@@ -186,7 +192,8 @@ impl<O: PacketObserver> Consumer<O> {
         unsafe { native::recomp_audio_packet_prune(self.queue.ptr.as_ptr(), now, queued_frames) };
     }
     pub fn fill_at(&mut self, sink: &mut impl PacketSink, requested: usize, started: u64) {
-        sink.fill_native(self.queue.ptr.as_ptr(), requested, started);
+        // The retained handle and unique consumer borrow satisfy the sink contract.
+        unsafe { sink.fill_native(self.queue.ptr.as_ptr(), requested, started) };
     }
     pub fn discard(&mut self, reason: &'static str) {
         unsafe {
