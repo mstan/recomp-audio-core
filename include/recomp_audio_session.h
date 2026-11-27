@@ -11,6 +11,9 @@ extern "C" {
 #endif
 typedef struct RecompAudioPacketSession RecompAudioPacketSession;
 typedef struct RecompAudioOutputSession RecompAudioOutputSession;
+/* Default monotonic timestamp domain. A supplied observer clock replaces it;
+ * produced/callback timestamps must use that same domain. */
+uint64_t recomp_audio_session_clock_ns(void);
 enum { RECOMP_AUDIO_PACKET_COUNT = 16, RECOMP_AUDIO_PACKET_SAMPLES = 192000 };
 enum RecompAudioDiscard {
   RECOMP_AUDIO_PACED_OVERFLOW = 1,
@@ -68,7 +71,8 @@ typedef struct {
   void (*submitted)(void *, uint64_t sequence, const RecompAudioSubmission *);
 } RecompAudioPacketObserver;
 /* One producer and one serialized consumer. Allocation happens only at create.
- * The caller keeps observer.user alive until both endpoints are gone. */
+ * The caller keeps observer.user alive until both endpoints are gone. Stop both
+ * endpoints and all observers before destroy; destruction is not concurrent. */
 RecompAudioPacketSession *
 recomp_audio_packet_create(uint32_t rate, uint32_t channels, int paced,
                            const RecompAudioPacketObserver *);
@@ -77,6 +81,11 @@ void recomp_audio_packet_destroy(RecompAudioPacketSession *);
  */
 int recomp_audio_packet_submit(RecompAudioPacketSession *, const int16_t *,
                                size_t, uint64_t field, uint64_t produced_ns);
+/* The returned PCM is immutable and borrowed until consumer advance/discard
+ * (including fill), or destroy. The producer cannot reclaim this published slot
+ * until consumer advance releases it; reads of other slots do not invalidate
+ * it.
+ */
 int recomp_audio_packet_peek(RecompAudioPacketSession *, RecompAudioPacket *);
 void recomp_audio_packet_advance(RecompAudioPacketSession *);
 void recomp_audio_packet_prune(RecompAudioPacketSession *, uint64_t now_ns,

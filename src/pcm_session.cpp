@@ -21,7 +21,11 @@ uint64_t host_clock() {
 uint64_t saturated_add(uint64_t a, uint64_t b) {
   return b > UINT64_MAX - a ? UINT64_MAX : a + b;
 }
+bool byte_count_valid(int64_t bytes) {
+  return bytes >= 0 && uint64_t(bytes) <= UINT32_MAX;
+}
 } // namespace
+extern "C" uint64_t recomp_audio_session_clock_ns(void) { return host_clock(); }
 struct RecompAudioPacketSession {
   RecompAudioPacket slots[packets]{};
   std::unique_ptr<int16_t[]> storage;
@@ -171,7 +175,7 @@ extern "C" void recomp_audio_packet_fill(RecompAudioPacketSession *q,
       const auto before =
           sink->info(sink->user, stream, RECOMP_AUDIO_QUERY_QUEUED);
       q->prune(published, started,
-               before.queued_bytes < 0
+               !byte_count_valid(before.queued_bytes)
                    ? 0
                    : uint32_t(before.queued_bytes) / (2 * q->channels));
       const auto &p = q->slots[q->consumer_read % packets];
@@ -185,21 +189,21 @@ extern "C" void recomp_audio_packet_fill(RecompAudioPacketSession *q,
       const auto after =
           sink->info(sink->user, stream,
                      RECOMP_AUDIO_QUERY_QUEUED | RECOMP_AUDIO_QUERY_AVAILABLE);
-      if (before.queued_bytes >= 0) {
+      if (byte_count_valid(before.queued_bytes)) {
         s.valid |= 1;
         s.queued_before_frames =
             uint32_t(before.queued_bytes) / (2 * q->channels);
       }
-      if (after.queued_bytes >= 0) {
+      if (byte_count_valid(after.queued_bytes)) {
         s.valid |= 2;
         s.queued_after_frames =
             uint32_t(after.queued_bytes) / (2 * q->channels);
       }
-      if (available.available_bytes >= 0) {
+      if (byte_count_valid(available.available_bytes)) {
         s.valid |= 4;
         s.available_before_bytes = uint32_t(available.available_bytes);
       }
-      if (after.available_bytes >= 0) {
+      if (byte_count_valid(after.available_bytes)) {
         s.valid |= 8;
         s.available_after_bytes = uint32_t(after.available_bytes);
       }
@@ -210,7 +214,7 @@ extern "C" void recomp_audio_packet_fill(RecompAudioPacketSession *q,
     }
     const auto final =
         sink->info(sink->user, stream, RECOMP_AUDIO_QUERY_QUEUED);
-    q->queued_frames.store(final.queued_bytes < 0
+    q->queued_frames.store(!byte_count_valid(final.queued_bytes)
                                ? 0
                                : uint32_t(final.queued_bytes) /
                                      (2 * q->channels),

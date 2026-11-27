@@ -106,6 +106,7 @@ pub struct Source {
     pub destroy: Option<unsafe extern "C" fn(*mut c_void)>,
 }
 unsafe extern "C" {
+    pub fn recomp_audio_session_clock_ns() -> u64;
     pub fn recomp_audio_packet_create(
         rate: u32,
         channels: u32,

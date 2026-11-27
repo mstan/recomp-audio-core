@@ -18,6 +18,7 @@ Link `recomp-audio::core` and include `recomp_audio.h`. Call
   refill before recovery, matching the pinned Genesis donor.
 - `RECOMP_AUDIO_LEGACY_NES` (1): exhaustive stall-loop search and immediate
   recovery, matching the pinned NES donor.
+- `RECOMP_AUDIO_GBA` (2): the qualified GBA bounded-stall concealment/fade profile.
 
 Profiles stay fixed for an instance. They describe existing device delivery
 behavior, not guest execution backends. There is no silent runtime fallback.
