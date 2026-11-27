@@ -1,5 +1,7 @@
 # recomp-audio-core
 
+Current licensing and the grant for existing owner contributions are documented in [LICENSE-SCOPE.md](LICENSE-SCOPE.md).
+
 Shared portable C99 host audio clock bridge extracted from qualified NES and
 Genesis implementations. It consumes interleaved S16 native PCM and produces
 interleaved S16 device-rate PCM through a persistent polyphase resampler, bounded
