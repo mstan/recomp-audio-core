@@ -1,25 +1,38 @@
 {
-  "donors": [
-    {
-      "repository": "https://github.com/mstan/nesrecomp",
-      "revision": "cba8f7ca97486ab51f8f653063e419c842f1f4e0",
-      "path": "runner/src/recomp_audio_drc.h",
-      "sha256": "7d87e46954083e8dd1798a5705b3073a1597c9de177ee9397cfcc32bba907827",
-      "oracle": "tests/oracles/nesrecomp.h"
-    },
-    {
-      "repository": "https://github.com/mstan/segagenesisrecomp",
-      "revision": "403bf4f2c960644c35fca8d8c9a1aa7d03858846",
-      "path": "runner/recomp_audio_drc.h",
-      "sha256": "2f1720e438adccc4488e5171479bec3f042217cd280d84e0f78cd519aa0cb5a4",
-      "oracle": "tests/oracles/segagenesisrecomp.h"
-    }
-  ],
-  "license": "PolyForm Noncommercial 1.0.0; donor additional permissions retained under licenses/",
-  "extraction_changes": [
-    "One shared implementation; delivery_profile selects accepted Genesis or legacy NES stall behavior.",
-    "Genesis reset and prepared F32 publication are available to both profiles.",
-    "Reject nonfinite/invalid configuration and unsafe allocation dimensions.",
-    "Opaque block API; caller owns synchronization and device lifecycle."
-  ]
+    "donors":  [
+                   {
+                       "repository":  "https://github.com/mstan/nesrecomp",
+                       "revision":  "cba8f7ca97486ab51f8f653063e419c842f1f4e0",
+                       "path":  "runner/src/recomp_audio_drc.h",
+                       "sha256":  "7d87e46954083e8dd1798a5705b3073a1597c9de177ee9397cfcc32bba907827",
+                       "oracle":  "tests/oracles/nesrecomp.h"
+                   },
+                   {
+                       "repository":  "https://github.com/mstan/segagenesisrecomp",
+                       "revision":  "403bf4f2c960644c35fca8d8c9a1aa7d03858846",
+                       "path":  "runner/recomp_audio_drc.h",
+                       "sha256":  "2f1720e438adccc4488e5171479bec3f042217cd280d84e0f78cd519aa0cb5a4",
+                       "oracle":  "tests/oracles/segagenesisrecomp.h"
+                   }
+               ],
+    "license":  "MIT under the owner grant; historical donor notices and permissions retained",
+    "extraction_changes":  [
+                               "One shared implementation; delivery_profile selects accepted Genesis or legacy NES stall behavior.",
+                               "Genesis reset and prepared F32 publication are available to both profiles.",
+                               "Reject nonfinite/invalid configuration and unsafe allocation dimensions.",
+                               "Opaque block API; caller owns synchronization and device lifecycle."
+                           ],
+    "historical_license":  "PolyForm Noncommercial 1.0.0; donor additional permissions retained under licenses/",
+    "native_pcm_session":  {
+                               "paths":  [
+                                             "driver/src/field_window_audio_ring.rs",
+                                             "host/src/sdl3_audio_pull.rs"
+                                         ],
+                               "repository":  "https://github.com/mstan/ps2llr",
+                               "preserved":  "Drop-new overflow, timestamp pruning/last block, 20ms startup reserve, independent source/destination units, sticky resampling uncertainty, clear/close/replacement lifetime",
+                               "author":  "Matthew Stanley",
+                               "revision":  "e74a7b02f04d40e15399b41b36cba3ecad965cb1",
+                               "changes":  "Portable C++ packet and output lifetime owners with C ABI, Rust endpoint/device bindings, diagnostic callbacks, one bounded queue copy, fixed preallocated storage; no synthesis/resampler change",
+                               "license":  "MIT owner grant; SDL3 system APIs remain separate dependency bindings"
+                           }
 }

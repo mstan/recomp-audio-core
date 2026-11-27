@@ -18,6 +18,7 @@ Link `recomp-audio::core` and include `recomp_audio.h`. Call
   refill before recovery, matching the pinned Genesis donor.
 - `RECOMP_AUDIO_LEGACY_NES` (1): exhaustive stall-loop search and immediate
   recovery, matching the pinned NES donor.
+- `RECOMP_AUDIO_GBA` (2): the qualified GBA bounded-stall concealment/fade profile.
 
 Profiles stay fixed for an instance. They describe existing device delivery
 behavior, not guest execution backends. There is no silent runtime fallback.
@@ -45,6 +46,27 @@ profile field; initialize with defaults instead of positional initializers.
 Raw serialized `rab_bridge` structures are not a stable file format.
 
 ## Build and checks
+
+`recomp-audio::session` and `recomp_audio_session.h` separately provide native
+PCM delivery and output-session ownership. The packet profile retains a bounded
+single-producer/single-consumer queue, drop-new overflow, timestamp pruning that
+keeps the last block, and one device pull plus 20 ms of PCM for paced startup.
+It allocates its fixed store once and copies each accepted producer block once;
+consumption borrows that slot directly until release. Clear restores priming.
+
+The output owner opens a paused stream, sets saved gain before resume, preserves
+the prior playback on failed replacement, serializes clear against callbacks,
+and detaches/destroys the device before discarding and destroying source data.
+Source/destination frame units and sticky resampling uncertainty remain distinct
+in pull observations. Backend callbacks supply system calls; observer callbacks
+retain diagnostic identity and clock bindings. No worker or second queue is
+created. `rust/` supplies the matching C ABI, packet endpoints and SDL3 bindings;
+the caller supplies its subsystem context, gain and diagnostic observer.
+
+Existing resampler/delivery, PlayStation, GBA and NDS profiles retain their
+separate contracts and interfaces. The native session has no SDL or GPL source
+dependency. Optional backends retain their own licenses and must remain separate
+from this MIT target.
 
 ```sh
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release

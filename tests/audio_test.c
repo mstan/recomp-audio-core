@@ -89,5 +89,6 @@ int main(void) {
     int cases=0;
     for(int p=0;p<2;++p)for(int r=0;r<5;++r)for(int h=0;h<2;++h)
         for(int c=1;c<=2;++c)for(int t=0;t<2;++t){scenario(p,rates[r],h?44100:48000,c,t);++cases;}
+    scenario(2,32768,48000,2,1); ++cases; /* GBA 80ms stall cap and recovery */
     prepared();interface_checks();printf("%d frozen-donor differential scenarios, prepared-push and lifecycle checks passed\n",cases);return 0;
 }
